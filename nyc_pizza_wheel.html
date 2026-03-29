@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NYC Pizza Wheel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;background:#0a0a0a;color:#fff;font-family:'Space Grotesk',sans-serif;}
+  body{display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:32px 16px 48px;}
+
+  .hero{text-align:center;margin-bottom:32px;}
+  .hero-title{font-family:'Bebas Neue',sans-serif;font-size:72px;letter-spacing:4px;line-height:0.95;color:#fff;}
+  .hero-title span{color:#ff4500;}
+  .hero-sub{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#555;margin-top:8px;}
+
+  .main{display:flex;gap:48px;align-items:flex-start;flex-wrap:wrap;justify-content:center;width:100%;max-width:980px;}
+
+  .wheel-col{display:flex;flex-direction:column;align-items:center;gap:20px;}
+  .canvas-wrap{position:relative;width:420px;height:420px;}
+  canvas{display:block;}
+  .pointer-wrap{position:absolute;top:0;left:50%;transform:translateX(-50%);}
+  .pointer-arrow{width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:36px solid #ff4500;margin:0 auto;}
+  .pointer-line{width:2px;height:24px;background:#ff4500;margin:0 auto;}
+
+  .spin-btn{background:#ff4500;color:#fff;border:none;font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:4px;padding:18px 72px;border-radius:4px;cursor:pointer;transition:transform 0.1s,background 0.1s;width:100%;}
+  .spin-btn:hover{background:#ff5a14;}
+  .spin-btn:active{transform:scale(0.97);}
+  .spin-btn:disabled{background:#222;color:#444;cursor:not-allowed;}
+
+  .spin-meta{font-size:11px;color:#444;letter-spacing:1.5px;text-transform:uppercase;text-align:center;}
+
+  .right-col{display:flex;flex-direction:column;gap:16px;width:380px;min-width:280px;}
+
+  .result-card{background:#111;border:1px solid #1e1e1e;border-radius:16px;padding:28px;transition:border-color 0.3s;}
+  .result-card.active{border-color:#ff4500;}
+  .result-eyebrow{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#555;margin-bottom:10px;}
+  .result-name{font-family:'Bebas Neue',sans-serif;font-size:42px;line-height:1;color:#fff;margin-bottom:6px;min-height:50px;}
+  .result-name.spinning{color:#333;font-size:28px;}
+  .result-sub{font-size:12px;color:#444;margin-bottom:20px;}
+
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .action-btn{flex:1;padding:10px 16px;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:1px solid #2a2a2a;background:transparent;color:#888;transition:all 0.2s;white-space:nowrap;}
+  .action-btn:hover{border-color:#ff4500;color:#ff4500;}
+  .action-btn.primary{background:#ff4500;border-color:#ff4500;color:#fff;}
+  .action-btn.primary:hover{background:#ff5a14;}
+  .action-btn:disabled{opacity:0.3;cursor:not-allowed;}
+
+  .dist-box{background:#0d0d0d;border:1px solid #1a1a1a;border-radius:10px;padding:14px 16px;font-size:13px;color:#888;line-height:1.6;}
+  .dist-box strong{color:#fff;display:block;font-size:15px;margin-bottom:4px;}
+  .dist-box .miles{font-family:'Bebas Neue',sans-serif;font-size:36px;color:#ff4500;line-height:1;}
+  .dist-box .miles-label{font-size:11px;color:#555;letter-spacing:1px;text-transform:uppercase;}
+
+  .stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .stat-box{background:#111;border:1px solid #1a1a1a;border-radius:10px;padding:12px;text-align:center;}
+  .stat-val{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;line-height:1;}
+  .stat-lbl{font-size:9px;color:#444;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+
+  .history{background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:16px;}
+  .history-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#444;margin-bottom:12px;}
+  .history-list{display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;}
+  .history-item{display:flex;align-items:center;gap:8px;font-size:13px;color:#666;}
+  .history-num{font-family:'Bebas Neue',sans-serif;font-size:16px;color:#333;min-width:20px;}
+  .history-name{flex:1;}
+  .history-item.latest .history-name{color:#ff4500;}
+  .history-item.latest .history-num{color:#ff4500;}
+
+  .progress-bar{width:100%;height:3px;background:#1a1a1a;border-radius:2px;overflow:hidden;}
+  .progress-fill{height:100%;background:#ff4500;border-radius:2px;transition:width 0.5s;}
+
+  .visited-toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:#555;}
+  .visited-toggle input{accent-color:#ff4500;}
+
+  @media(max-width:600px){
+    .hero-title{font-size:52px;}
+    .canvas-wrap{width:320px;height:320px;}
+    .right-col{width:320px;}
+    .result-name{font-size:32px;}
+    .spin-btn{font-size:26px;padding:16px 40px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-title">NYC<br><span>Pizza</span><br>Wheel</div>
+  <div class="hero-sub">978 spots across the 5 boroughs</div>
+</div>
+
+<div class="main">
+  <div class="wheel-col">
+    <div class="canvas-wrap">
+      <canvas id="wheel" width="420" height="420"></canvas>
+      <div class="pointer-wrap" style="top:0;">
+        <div class="pointer-line"></div>
+        <div class="pointer-arrow"></div>
+      </div>
+    </div>
+    <button class="spin-btn" id="spinBtn" onclick="spin()">SPIN</button>
+    <div class="spin-meta" id="spinMeta">tap to pick your next pizza run</div>
+  </div>
+
+  <div class="right-col">
+    <div class="result-card" id="resultCard">
+      <div class="result-eyebrow">Your next run is to...</div>
+      <div class="result-name" id="resultName">Waiting for spin</div>
+      <div class="result-sub" id="resultSub">Hit spin to pick a pizza spot</div>
+      <div class="btn-row" id="btnRow">
+        <button class="action-btn" id="locBtn" onclick="getLocation()" disabled>Get distance</button>
+        <button class="action-btn primary" id="mapsBtn" onclick="openMaps()" disabled>Open in Maps</button>
+      </div>
+      <div id="distBox" style="display:none;margin-top:12px;"></div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-val" id="statSpins">0</div><div class="stat-lbl">Spins</div></div>
+      <div class="stat-box"><div class="stat-val" id="statVisited">0</div><div class="stat-lbl">Visited</div></div>
+      <div class="stat-box"><div class="stat-val" id="statLeft">978</div><div class="stat-lbl">Left</div></div>
+    </div>
+
+    <div style="padding:0 2px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#444;">Progress</span>
+        <span style="font-size:11px;color:#555;" id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="history" id="historyBox" style="display:none;">
+      <div class="history-title">Recent spins</div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+    <label class="visited-toggle">
+      <input type="checkbox" id="skipVisited" checked>
+      Skip already-spun places
+    </label>
+  </div>
+</div>
+
+<script>
+const PLACES = ["Pizza Plus", "Tagliere", "Pete's Place", "Pizzeria Las Margarita", "Brooklyn Dop", "Domino's", "Carlo's Pizzeria Q", "D'Angelo's Pizzeria And Restaurant", "Mario's Pizza 2", "Iggy's Pizzeria", "V & S Pizzeria Of B", "Janet's Pizza", "Prova Pizza Bar", "Grandpa's Brick Oven Pizza", "Avellino Restaurant", "Farinella Pizza Bakery", "Champion Pizza", "Figo Pizza", "Barese Pizza", "Apicius Pizza", "Broadway Pizza", "Papa John's", "NY 99 Cents Fresh Pizza", "Gina's Pizza", "Bklyn Pizza Co.", "Princess Pizzeria", "Best Pizza", "Joe's Pizza", "Di Farina", "Tony's Pizza", "Joe's Little Italy Pizza", "New Yankee Sk Pizza", "Bene Pizzeria & Restaurant", "Delizia 92", "Kingsbridge Social Club", "Pizza Italia 1", "Palace Fried Chicken & Pizza", "Beverly Pizza", "Pizzarama", "La Villa Pizzeria", "Andiamo Pizza", "Domino's Pizza", "Village Square Pizza II", "Dunkin'", "Inwood Pizza", "Uncle Sam Pizza M", "Motorino Pizzeria Napoletana", "Papa Johns", "Luigi's Pizzeria", "Roma Pizza", "Vincenzos Pizzaria Restaurant", "Cozie's Pizzeria", "Sofia Wine Bar", "T-Brothers Pizzeria", "Famosa Pizza", "Luna Pizzeria", "Liberty Pizza", "Carranza Pizza", "Aldo's Pizza", "George's Pizza", "Goodfella's", "Nova Grill", "Barano2Go", "Artichoke Basille's Pizza", "The Pizza Place", "BK Pizza", "Singas Famous Pizza", "My Little Pizzeria", "Marinara", "Numero 28 Pizzeria", "Pizza City", "Sauce And Soda", "Little Caesars", "Pizza Nosh", "Quentin Pizzeria", "Crown Heights Pizza", "Glendale Pizza", "La Villa De Pizza", "Marconis Pizza", "Mimi's Pizza", "A & L Pizza Restaurant", "Famous Famiglia", "Fresh Meadow's Pizza", "Louie & Ernie's", "Casabianca Pizzeria Restaurant", "Fabena Pizza", "Pizzeria L'Antica", "Little Italy Pizza M", "Pizza Town", "Three Brothers B", "Corona Pizza", "Rivoli Pizza II", "Rivington Pizza", "Ray's Pizza", "Rocky's Pizzeria & Restaurant II", "Papi Pasta & Pizza", "Julie's", "Brooklyn Pizza Market", "Angelica Pizzeria", "Papa John's Pizza", "Vito's Pizza", "Pizza Chop", "Perizia Kosher Pizza", "Bella Napoli", "Louie's Pizzeria", "San Remo Pizzeria", "Two Boots Pizza", "Bellerose Famous Pizza", "Gino's Pizza Express", "Crown Chicken", "Nuovo York Pizza", "Famous Original Ray's Pizza", "Made In New York Pizza", "Jumbo Pizza", "Fornino", "Extra Crispy Pizzeria", "Famous Famiglia Pizzeria", "Vezzo", "House Pizza", "Fratilli's Pizza & B", "Espresso Pizzeria", "Hank's Pizza / Lazzaro", "Patsy's Pizzeria", "Madison's Delicious Pizza Cafe", "Mario's Pizza", "Artistic Pizza", "Bella's Pizza", "La Vera Pizza", "Loretta's Pizza", "Pedro's Kitchen Q", "Taste Of Italy Pizzeria", "Previti Pizza", "Not Just Pizza", "Brothers Pizza", "Dino's Pizza", "Ricky's Pizza", "Pizza Classica", "Baresha", "Whitepoint Pizzeria & Restaurant", "Pizza Vino", "Ray's Pizza Bagel Cafe", "Rego Slice Pizzeria", "Fresh Hot Pizza", "Lucia Pizza", "Emilio's", "Nostrand Famous Pizza", "Pino's Pizza And Grill", "B Express Pizzeria", "Pizza D'Amore", "Freddie & Pepper's", "La Bona Pizza & Pasta", "Rosa's Pizza", "Pronto Pizza", "Giovanni's", "Daisy's Pizza", "Zeff's Pizzeria", "Joe & Sal's Pizzeria", "Peppino's", "Napoli Pizza", "Previti Pasta & Pizza", "Best Pizza On", "Monty Q's", "Elegante", "Cozzi Pizza", "Carlos Pizzeria", "Famous Pizza", "Neptune Pizza", "La Mozzarella Pizzeria", "Villa Fresh Italian Kitchen", "El Paisano Pizzeria", "Jojo's Pizza", "Domy Pizza", "Napoli Pizza & Pasta", "Mama's Too!", "Pepe Joe's Pizza", "Family Pizza", "Uncle Pauls Pizza NY", "Sunnyside Pizza", "Bardolino Pizza M", "Side By Side Pizza & Burek", "Rego Park Best Pizza & Halal Chicken", "Famous Ray's Pizza", "Famous Calabria Pizza", "Artichoke", "Romeo's Pizzeria", "Pg Pizza", "Vpho Pizzeria & Restaurant", "Williamsburg Pizza", "Uncle Tony's Pizza", "Alitalia Pizza Restaurant", "The Original Sal's Pizzeria", "Pizza Den", "Airways Pizza & Gyro Restaurant", "Five Dreams Pizzeria", "Verona Pizza", "Little Pizza Parlor", "Nick's Pizza", "California Pizza Q", "Shipwrecked Miniature Golf", "Dellarocco's Of Brooklyn", "La Trattoria Pizza", "Famous Ben's Pizza Of Soho", "Sunset Pizza", "Diego's Pizza & Restaurant", "Asap! Pizza Spot Q", "Dante's Pizza", "Pizza Damore", "Villa Mia Pizza", "Alfie's Pizza And Pasta", "Cassiano's Pizza", "Sal & Carmine Pizza", "Noel's Pizza", "Ben's Pizza", "Square Pizza", "Valentino's Pizza", "Pizza Sam", "Mama's Pizzeria", "Rocco's Pizzeria", "Alba's Pizzeria", "Best Italian Pizza", "Fini Pizza", "Prince St Pizza", "Taste Of Dolly's Q", "P & M Classic Pizza & Restaurant", "Dominos", "John's Pizzeria", "Sam's Pizza", "Cestra's Pizzeria & Restaurant", "New Park Pizzeria & Restaurant", "J&V Famous Pizza", "Cafe Pizza 2000 Express", "Pizza Gaga", "Domenick's Pizza", "Full Moon Pizza B", "Il Miglio Brick Oven Pizza", "Bayridge Pizza", "Sbarro", "Hi-Class Pizzeria & Restaurant", "Lupo Rosso", "Jericho Turnpike", "Villa Maria Pizzeria", "L'Industrie Pizzeria", "Rosa's Pizza & Pasta", "Tepangos Pizza", "Casa Theodoro", "Lunetta Pizza", "La Bella Pizzeria", "Gotham Pizza", "L&B Spumoni Gardens", "Lombardi's", "Tommy's Pizza", "Bklyn's Pizza", "Shah's Halal Food", "J's Pizza", "Jfk Airport", "Bella Roma Pizza", "Paulie Gee'Z", "Champion Pizza Essex", "City Island Pizza Company", "Da Vinci Pizza", "Tony & Tina's Pizza", "Phillies Pizzeria Q", "Sedgwick Pizza And Pasta", "Gino's Pizza", "J.R. Pizzeria", "San Pedro Pizza", "Pizza Stop", "Thwaites Place Pelham Pizza", "La Casa Mia Pizzeria", "Pizza Pete's", "Susano's Pizzeria & Restaurant II", "Sal's Pizzeria", "Angelo's Pizza", "Jerry's Pizza", "Pizza Loves Sauce", "Chiara Pizzeria", "Bd Star Pizza", "Prima Pizza", "Mo's General", "Little Italy M & O Pizza Restaurant", "Emmy Squared", "Malva Pizzeria", "Margherita Pizza", "Table 87 Pizza", "Pizza Wagon", "Eliot Pizzeria", "Little Ceasars", "Victorias Pizza", "Riviera V Ristorante", "Il Baretto To Go", "York Ave Pizza", "City Line Pizza & Pasta", "Les Pizza Shop", "La Bella Pizza Express", "Trattoria Bambino's Pizza", "Sofia Pizza Shoppe", "Bellucci Pizza", "Italian Village", "Ipizzany", "The Goodfellas Pizzeria Of Sunnyside", "Due Fratelli", "La Citta Pizzeria", "Regina's Cafe & Pizzeria", "My Pie", "Luv-N-Oven", "Krave It", "Gaudio's Pizzeria", "Fordham Hot Pizza", "Three Boys From Italy Pizzeria", "One Fifty Fresh Pizza", "Luigi's Pizza", "Upside Pizza", "Addeo's Riverdale Pizzeria", "Pizza Chef", "Cafe 58 Pizzeria", "Mr. Pizza", "Circle Pizza & Restaurant", "Bella Pizza Restaurant", "Dino's Pizzeria", "Rosalia's Pizzeria", "Yankee's Pizza", "Pizzeria Restaurant Perez", "Triangulo Pizza", "Papa Johns Pizza", "Ponticello Baybridge Pizzeria & Restaurant", "La Strada Pizzeria Restaurant", "Springfield & La Q", "Pizza And Shakes", "Bad Boys Pizza", "Jentana's Pizza", "Pizza Concession", "Union St. Pizza", "Five Boys Fresh Pizza", "Not Ray's Pizzeria", "House Of Pizza", "Lavista Pizza", "Wheated", "Sophistian Pizza Q", "Ridgewood Labella", "Vito's Slices And Ices", "Royal Pizzeria", "Jerome's Pizza", "Antonio's Pizzeria", "Pizza Garden", "Chuck E. Cheese Q", "Pizza 21St", "Three Brother's Pizzeria", "Dani Pizza And Restaurant", "Fastlife Pizza", "Queens Blvd Pizzeria", "Roberta's", "Don Pepi Pizza", "Fresh 99 Cents Hot Pizza", "Quality Pizza", "Kosher Pizza Time", "Paul Michael's", "Singas Famous Pizza & Grill", "Giuseppina's Brick Oven", "Marko's Pizzeria", "New Pizza Place", "Motorino Pizzeria", "Luigi's Pizza And B", "Margherita's Mexican Cuisine", "Baked By Luigi", "Toskana Pizzeria Restaurant", "Randazzo's Pizza", "Fascati's Pizzeria", "Ganni's Pizzeria", "Gravesend Pizza", "Pizza Factory", "Original Ray's Pizza", "Bricklyn Pizza", "Niccolo Pizzeria", "Marinara Pizza", "Pizzazz", "New York Pizza Suprema", "Pizza Port", "Maspeth Pizza", "Crazy Chef Pizza", "Village Square Pizza", "Lucia Of The Upper Eastside", "Gabriella's Pizza", "Abitino's Pizza", "Ace Pizza", "Lillian Pizzeria", "Prego's Pizza", "Ciro's Pizza", "Filaga Pizzeria", "Leone's Pizzeria Q", "Rizzo's Fine Pizza", "Vesuvio Restaurant & Pizza", "Traditas Pizza", "Smiling Pizza", "Pizza", "Rocco's Pizza", "Lenny's Pizza", "Boardwalk Pizzeria Restaurant", "Marios Homemade Cuisine", "Jet's Pizza", "Via Roma Pizza Bar", "Bravo Pizza", "John's Pizza", "J & J Pizza", "Pizza Twist", "Leo's Pizza", "Enzos Pizza", "Little Italy", "Rosella's Pizzeria", "Gino's Pizzeria", "Pizza Squad", "Ray's Pizza Restuarant", "Denise Pizza", "Gruppo", "Pizza Pub/ Dunkin Express", "Norms Pizza", "Bona Pizza", "Rome To Brooklyn Pizza", "La Belleza Pizzeria", "Galleria Pizza", "Pizza Studio", "Country Bay Pizza", "Green Olive Pizza", "Gia's Pizza", "Gianni Pizza", "Tony's Pizza II", "Vines Pizza", "Radio City Pizza", "Jalapenos Pizza B", "Addeo's Of The Bronx", "Pete's Pizzeria & B", "Krispy Pizza", "Taste Of Italy", "Nonnas 1977", "Dreamer's Pizza M", "Nyc Pizza", "Golden Pizza", "Grimaldi's Pizzeria", "Elegante Restaurant & Pizzeria", "Bb Pizza & Dine", "La Rondine Pizza", "Divina Pizza", "Carnegie Pizza", "Joes Pizza & Pasta", "Original Pizza", "Graziella Pizzeria", "Knapp St Pizza II", "Grotta Azzurra B", "Joey's Pizza", "John & Joe Pizzeria & Restaurant", "Sergio's Pizza", "Famous Joe's Pizza", "Crust Bklyn", "Original Joe's Pizza", "Poli Pizza", "Angela's Pizza", "Concourse Pizza & Pasta", "Amore Pizzeria", "Bedstuy Mike's Pizza", "Grace Pizza", "Unregular Pizza", "Table 87", "D'Angelo's Pizza", "Patzeria's Perfect Pizza", "Armando's Pizza", "Mama's Pizza", "Lona Pizza", "Famous Pizza Express", "Zeny's Pizza", "Artistic Stitch Sports Complex", "My Place Family Pizza", "Crosby Pizza Stop", "Rossi Pizza", "Ljubo's Pizzeria", "New Kingston Pizza", "Astoria Pizza Factory", "Bambino Express", "Oma Grassa", "Gus's Pizzeria", "Ben's Pizza And Restaurant", "Simo Pizza", "Motorino", "Torres Italian Restaurant", "The Goodfellas Pizzeria Of L.I.C.", "Briciola", "Pasha Pizza Pita", "Chequito's Mexican Food", "Famous 1 Dollar Pizza", "Venezia Pizza", "Loduca Pizza", "Original Bella Napoli Pizza & Restaurant", "Barclays Center-Over Rice", "Tonda Pizza", "Barcklays Pizza B", "Francesco's Pizzeria", "Bella Donna Pizza", "Rosa Pizza", "Gino's Cucina Brick Oven Pizza", "Bella Pizza & Restaurant", "Delicias Pizza And Chicken", "Susano's Pizzeria", "Addeos Of The Bronx", "Andrea's Pizza", "East Village Pizza", "Biga Bite", "Reg'Z New York Pizza", "Jack's Pizza", "Surf City", "Retro Pizza", "Pronto Pizzeria", "Benny's Famous Pizza", "Paulie Gee Slice Joint", "S & S Calabro Pizzeria", "Astoria Pizza / Ibiza Juice Bar", "Rosario Pizza", "Forest Hills Pizzeria", "Zillions Pizzeria", "Angelos Pizzeria", "Chrissy's Pizza", "Xtra Cheese Pizzeria", "Gary And Gino's", "Sss 99 Cents Mega Pizza", "Aj Pizzeria", "Familia Pizza Restaurant", "Slice Broadway", "Dekalb Pizzeria", "Milano's Pizzeria", "Caterina Pizza", "Gloria Pizza", "Totonno's Pizzeria", "Jimmys Pizza", "Benvenuto", "Cucina Bene Pizzeria", "New Lane Pizzeria", "Nyc Pizza Kitchen", "Cross Bronx Pizzeria", "Chicago's Pizza With A Twist", "Tonys Pizza On Nostrand", "San Miguel Pizza", "Sams Famous Pizza", "Pizza Central Of Brooklyn", "Mama Mia Pizzeria", "Salvatore's NY Pizza", "Crosta", "New Times Square Pizza", "Lilly's Pizza Bar", "Federico's Pizzeria", "Pizza Heights On Albany", "Freddy's Pizzaeria", "Piz-Zetta", "Franklin Pizza", "Sicily's Best Pizzeria & Restaurant", "Deli Pizza Luncheonette", "Mariella Pizza", "Minitalia Pizzeria", "B -Side Pizza Bar M", "No Fork", "Rocky's & Nicky's Pizzeria", "Mak Pizza", "Caterina Pizzeria", "Rony's Fresh Pizza", "Pizzette", "Pisa Pizzeria", "Pizza Italia", "Alligator Lounge", "Danny Pizzeria", "Andrew Bellucci's Pizzeria", "Pizza Napoli", "Krave It Pizza & Sandwich Joint", "Pop's Pizzeria", "La Bella Mariella", "Sottocasa Pizzeria", "Sacco Pizza", "Lucia Pizza Of Gramercy", "J&D Pizzeria", "Baby Luc's", "Flaco's Pizzeria M", "Alexandra's Deli & Pizza", "The Grotto Pizza", "Korner Pizzeria", "Father & Sons Wood Fire Oven Pizza", "Sofia's Pizza", "Romano Pizza", "Joe's Pizza & Pasta", "Brothers Pizzeria", "Rosie Pizza Bar", "King's Pizza", "La Traviata 2 Pizzeria", "Elmhurst Famous Pizza", "Joe's Brick Oven Pizza", "Broadway", "Loja's Pizza", "Rose Pizza", "Gaby's Pizza", "Katonah Pizza", "Saint Lawrence Devil Pizza", "Billy's Pizza Pasta", "West", "Grandma Pizza", "Una Pizza Napoletana", "Emmett's", "Momento's Pizza Coffee Shop", "Ariana's Pizza", "Vesuvios Pizza", "Piers Pizza Company", "Star Pizza", "Denino's", "Mr. Bruno's Pizza", "Stella's Pizza", "Emily", "Lazzara's Pizza Cafe & Restaurant", "Vinnie's Pizzeria", "Fuggedaboutit Pizzeria Cafe", "Two Boots", "Sofia Pizza Restaurant", "Puzza Hut", "Dona Bella Pizzeria", "Twist Pizza Corp", "Mano's Pizzeria", "Angelo's Pizzeria", "Beach Channel Drive", "Dq P", "Ciao Bella Pizza", "D Giovanis Big Pizza", "Samaria Pizza", "Royal King's Pizza", "Venice Pizza", "Caffe Rustico", "Ozone Pizzeria", "Farmers Pizzeria", "Franks Pizza Restaurant", "Lefrak Pizza", "Nonna's Pizzeria", "Springbone", "NY Fresh Pizza", "Danny's Pizzeria & Cafe", "Mark's Red Hook Pizza", "La Nostra Pizzeria And Restaurant", "La Vista Pizza", "L'Arte Della Pizza Brooklyn", "New Peperoni's Pizza", "Oli 99", "Prospect Pizza", "Brooklyn Pizza Masters", "Rome To Brooklyn Pizzeria", "Pizza On The Run", "Pizza Potenza Centrale", "Pizzeria San Diego", "Michael & Sons Italian Food & Pizza", "Joe's Pizzeria Restaurant", "Middletown Road", "Nino's Pizza", "Crustino's Pizza", "Vivali Pizza", "La Vita Pizza", "Angie's Cafe Pizza", "Benvenutis Pizza", "New York Sal's Pizzeria", "Crown Fried Chicken", "Martiniello's", "View Pizzeria", "Di Fara Pizzeria", "Ignazio's", "Artichoke Basille's", "Public Display Of Affection", "Martiniello's Iv Pizzeria", "Knapp Pizza III", "Union Pizza Works", "La Traviata Pizzeria", "Peperino", "Genesis Pizza Parlor", "Jay St Fresh 99 Cents Pizza", "Centro Pizza Bar", "Dominick's Pizzeria", "Lucia Pizza Of Soho/Lucia Alimentari", "Macoletta Brick Oven Pizzeria", "Ace's Pizza", "David's Bakery And Pizza", "Bella Notte Pizzeria", "Dyckman Palace Pizza", "El Centenario Pizza", "Brother's Pizzeria", "Table 87 / Eighty-Seven Next Door", "Ledo Pizza", "Salvatore S NY Pizza", "Marabella Pizza", "Toms Pizza", "Mela Pizza", "Noidue Pizza", "Tony's Pizzeria", "Vaccaro's Pizzeria & Trattoria", "Yankee's 99 Cents Hot Pizza", "Cuts & Slices", "Koronet Pizza", "Connolly's Pub", "Joe & John's Pizzeria", "Il Gusto Pizza", "Royal Napoli Pizza", "Fresh Pizza & Deli", "Bocconcini", "Giardini Pizza", "Buona Pizza Restaurant", "Sal & Paul's Pizzeria", "N & D Pizza", "Pizza Etalia", "Lennys Pizzeria", "Brooklyn Pizza Crew", "Krave Pizza", "Broni & Belle", "Cousins' Pizza & Pasta", "Grandma One Pizza", "Mario's Italian Pizzeria", "Fresh Pond Road", "Fresca Pizza", "Jules", "V.I. Pizza", "Big Cheese Pizza", "La Casa Bella", "Ivana Pizza", "Baby John's Pizzeria", "Lenny's Pizzeria Q", "Astoria Family Pizza", "Lorenzo's Pizzeria", "Quick Pizza", "Lenny & John's Pizza", "Soho 99 Cents Cheese Pizza", "Spunto", "Ciccio's Pizza", "Phil & Sons On Main", "Mike's Pizza Of Brooklyn", "Pizza Foto", "Highlanders Stand 310", "Corner Pizza Shop", "Garlic Pizza Bar", "Fratelli's Pizzeria", "Daro's Pizza", "Peppinos Pizza", "Upside", "Church Ave Hot Pizza", "Landy Pizzeria & B", "Giacomo Pizzeria", "Luna Pizza", "Jimmy's Pizzeria", "Roebling Pizza", "Broadway Joe's Pizza", "Crispiano", "Tony", "Primavera Pizzeria", "The Original Emilio's Pizza", "See No Evil Pizza", "Villano Pizza", "Monte Pizza", "NY Sal's Pizza", "Green Oven Pizza", "Nonna Delia's", "Emmy Squared Pizza", "Brado Thin Crust Pizza", "Underground Pizza", "Jo Jo Pizza", "Il Bel Paese Pizzeria", "Justino's", "Philomena's", "Carmine's Pizza", "Sal's Pizza", "Tatos Pizza", "Xeno's Pizza", "Aegea West", "Libretto's Pizzeria", "Impasto", "Capri II Pizza", "Nolita Pizza", "Pizza On The Point", "La Nostra Pizzeria", "Rr & M Pizza", "Charlie's Pizza", "Decades", "Bardough", "Famous Joe Pizzeria", "Two Brothers Pizza", "The Alley Pizza Lounge", "Johnny's Pizza Restaurant", "Romeo's Pizza", "R-1 Hot Pizza", "Tonys Pizzeria", "Trufa Pizzeria", "Mediterraneo Pizza", "Gigi's Pizzaria", "Rocky's Pizzeria", "Jamaica Hot Pizza", "Baggios Pizzeria", "Cellos", "Geo's Pizzeria", "Mia's Pizza", "Pizzeria Grande", "Papa Mikes Brick Oven Pizza", "Capizzi", "Emilio's Original Gourmet Pizza", "Cross Island Parkway", "Pizza Shop", "The Onion Tree Pizza Co.", "Pizza Daa Napoli M", "Frescos Pizzeria", "Two Boots West Village", "Ely's Pizza", "Penn Station", "The Astarita", "Bedford Pizza Cafe", "Bites On Valentine", "Stromboli Pizza M", "One Fifty Fresh Pizza 40Th St", "Robin's Pizza & Fried Chicken", "The Swiss Slice", "Cuisine Description", "Bk37", "Point", "Bk32", "Bx05", "Mn19", "Qn21", "Qn17", "Bx27", "Mn22", "Bk17", "Bk31", "Mn01", "Qn18", "Mn17", "Mn24", "Bk27", "Bx14", "Qn72", "Bk35", "Qn26", "Mn23", "Qn63", "Bk73", "Mn25", "Bk26", "Bk61", "Bx06", "Bx55", "Bk40", "Mn32", "Bx29", "Bx17", "Bk19", "Bk41", "Qn46", "Bk45", "Mn13", "Mn34", "Bx49", "Qn76", "Mn27", "Qn38", "Bk25", "Bk69", "Bk85", "Qn56", "Mn36", "Bx22", "Bx44", "Bk29", "Bk50", "Bk81", "Bk09", "Bk77", "Bx62", "Qn19", "Bx37", "Qn57", "Bx43", "Mn12", "Bk88", "Qn41", "Bx52", "Mn15", "Bk82", "Bk30", "Bx13", "Bx40", "Qn25", "Mn28", "Mn20", "Qn20", "Mn33", "Bk33", "Bk38", "Qn42", "Bk79", "Bk44", "Qn34", "Qn15", "Qn29", "Mn14", "Qn43", "Mn04", "Mn40", "Bx10", "Bx28", "Bk58", "Qn03", "Bk43", "Qn30", "Bx39", "Qn71", "Qn54", "Bx46", "Qn49", "Mn11", "Qn22", "Bk42", "Mn03", "Bx63", "Bx75", "Bx33", "Bk63", "Qn68", "Bk68", "Bk72", "Qn28", "Qn31", "Bk96", "Qn70", "Qn44", "Qn01", "Bx34", "Bk60", "Bx07", "Qn06", "Bk75", "Bk28", "Qn52", "Bx31", "Bx36", "Qn10", "Qn53", "Bx26", "Mn09", "Qn55", "Qn60", "Bk23", "Qn61", "Mn21", "Qn08", "Qn07", "Mn31", "Bk83", "Bx03", "Bk78", "Bk90", "Bx08", "Bx35", "Bk76", "Qn47", "Qn02", "Qn51", "Qn05", "Bx09", "Bk64", "Bk21", "Qn45", "Qn12", "Qn50", "Qn98", "Qn35", "Qn37", "Bx01", "Bx41", "Bx59", "Mn35", "Bk34", "Qn27", "Bk95", "Bk91", "Qn48", "Qn23", "Bk93", "Qn62"];
+
+const SLICE_COUNT = 20;
+let angle = 0;
+let spinning = false;
+let spinCount = 0;
+let visited = new Set();
+let history = [];
+let winner = '';
+let winnerPlace = '';
+let displayNames = [];
+let userLat = null, userLng = null;
+
+const CX = 210, CY = 210, R = 198;
+
+function toRad(d){ return d * Math.PI / 180; }
+
+function shuffleDisplay(){
+  const arr = [...PLACES].sort(() => Math.random() - 0.5);
+  displayNames = arr.slice(0, SLICE_COUNT);
+}
+
+function drawWheel(rot){
+  const canvas = document.getElementById('wheel');
+  const ctx = canvas.getContext('2d');
+  const slice = (2 * Math.PI) / SLICE_COUNT;
+  ctx.clearRect(0,0,420,420);
+
+  for(let i = 0; i < SLICE_COUNT; i++){
+    const s = rot + i * slice;
+    const e = s + slice;
+    ctx.beginPath();
+    ctx.moveTo(CX, CY);
+    ctx.arc(CX, CY, R, s, e);
+    ctx.closePath();
+    ctx.fillStyle = i % 2 === 0 ? '#161616' : '#0e0e0e';
+    ctx.fill();
+    ctx.strokeStyle = '#0a0a0a';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(CX, CY);
+    ctx.rotate(s + slice / 2);
+    const label = (displayNames[i] || '').substring(0, 22);
+    const progress = (i / SLICE_COUNT);
+    ctx.fillStyle = i % 2 === 0 ? '#ff4500' : '#555';
+    ctx.font = "500 11px 'Space Grotesk', sans-serif";
+    ctx.textAlign = 'right';
+    ctx.fillText(label.length > 20 ? label.substring(0,19)+'…' : label, R - 10, 4);
+    ctx.restore();
+  }
+
+  // Outer ring
+  ctx.beginPath();
+  ctx.arc(CX, CY, R, 0, 2*Math.PI);
+  ctx.strokeStyle = '#ff4500';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Tick marks
+  for(let i = 0; i < SLICE_COUNT; i++){
+    const a = rot + i * (2*Math.PI/SLICE_COUNT);
+    ctx.beginPath();
+    ctx.moveTo(CX + (R-2)*Math.cos(a), CY + (R-2)*Math.sin(a));
+    ctx.lineTo(CX + (R+6)*Math.cos(a), CY + (R+6)*Math.sin(a));
+    ctx.strokeStyle = '#ff4500';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Center
+  ctx.beginPath();
+  ctx.arc(CX, CY, 36, 0, 2*Math.PI);
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fill();
+  ctx.strokeStyle = '#ff4500';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = '#ff4500';
+  ctx.font = "700 11px 'Space Grotesk', sans-serif";
+  ctx.textAlign = 'center';
+  ctx.fillText('NYC', CX, CY + 4);
+}
+
+function pickWinner(){
+  const skip = document.getElementById('skipVisited').checked;
+  const pool = skip ? PLACES.filter((_,i) => !visited.has(i)) : PLACES;
+  const available = pool.length > 0 ? pool : PLACES;
+  const pick = available[Math.floor(Math.random() * available.length)];
+  winner = pick;
+  winnerPlace = pick;
+  const idx = PLACES.indexOf(pick);
+  visited.add(idx);
+}
+
+function spin(){
+  if(spinning) return;
+  spinning = true;
+  document.getElementById('spinBtn').disabled = true;
+  document.getElementById('resultCard').classList.remove('active');
+  document.getElementById('locBtn').disabled = true;
+  document.getElementById('mapsBtn').disabled = true;
+  document.getElementById('distBox').style.display = 'none';
+  document.getElementById('resultName').textContent = '...';
+  document.getElementById('resultName').className = 'result-name spinning';
+  document.getElementById('resultSub').textContent = 'spinning...';
+
+  shuffleDisplay();
+  pickWinner();
+
+  const extraSpins = 6 + Math.random() * 4;
+  const target = angle + extraSpins * 2 * Math.PI + Math.random() * 2 * Math.PI;
+  const dur = 4000 + Math.random() * 1500;
+  const start = angle;
+  const t0 = performance.now();
+
+  function ease(t){ return 1 - Math.pow(1 - t, 4); }
+
+  function frame(now){
+    const p = Math.min((now - t0) / dur, 1);
+    angle = start + (target - start) * ease(p);
+    drawWheel(angle);
+    if(p < 1){
+      requestAnimationFrame(frame);
+    } else {
+      spinning = false;
+      spinCount++;
+      document.getElementById('spinBtn').disabled = false;
+      document.getElementById('spinBtn').textContent = 'SPIN AGAIN';
+
+      document.getElementById('resultName').textContent = winner;
+      document.getElementById('resultName').className = 'result-name';
+      document.getElementById('resultSub').textContent = 'one of 978 NYC pizza spots · time to run!';
+      document.getElementById('resultCard').classList.add('active');
+      document.getElementById('locBtn').disabled = false;
+      document.getElementById('mapsBtn').disabled = false;
+
+      history.unshift(winner);
+      if(history.length > 10) history.pop();
+      updateStats();
+      updateHistory();
+
+      document.getElementById('spinMeta').textContent =
+        spinCount + ' spin' + (spinCount !== 1 ? 's' : '') +
+        ' · ' + (PLACES.length - visited.size) + ' spots remaining';
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function updateStats(){
+  document.getElementById('statSpins').textContent = spinCount;
+  document.getElementById('statVisited').textContent = visited.size;
+  document.getElementById('statLeft').textContent = PLACES.length - visited.size;
+  const pct = Math.round((visited.size / PLACES.length) * 100);
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function updateHistory(){
+  const box = document.getElementById('historyBox');
+  const list = document.getElementById('historyList');
+  box.style.display = 'block';
+  list.innerHTML = history.map((name, i) =>
+    '<div class="history-item' + (i === 0 ? ' latest' : '') + '">' +
+    '<span class="history-num">' + (i + 1) + '</span>' +
+    '<span class="history-name">' + name + '</span>' +
+    '</div>'
+  ).join('');
+}
+
+function getLocation(){
+  const btn = document.getElementById('locBtn');
+  btn.textContent = 'Locating...';
+  btn.disabled = true;
+  if(!navigator.geolocation){
+    showDist('Geolocation not supported in this browser.', null);
+    btn.textContent = 'Not supported';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      const distMi = haversine(userLat, userLng, 40.7580, -73.9855);
+      showDist(winner, distMi);
+      btn.textContent = 'Updated';
+      btn.disabled = false;
+    },
+    err => {
+      showDist(winner, null);
+      btn.textContent = 'Retry';
+      btn.disabled = false;
+    }
+  );
+}
+
+function haversine(lat1, lng1, lat2, lng2){
+  const R = 3958.8;
+  const dLat = (lat2-lat1)*Math.PI/180;
+  const dLng = (lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function showDist(name, miles){
+  const box = document.getElementById('distBox');
+  box.style.display = 'block';
+  if(miles !== null){
+    const walkMins = Math.round(miles * 20);
+    const runMins = Math.round(miles * 10);
+    box.innerHTML =
+      '<strong>' + name + '</strong>' +
+      '<div class="miles">' + miles.toFixed(1) + '</div>' +
+      '<div class="miles-label">miles away (approx)</div>' +
+      '<div style="margin-top:8px;font-size:12px;color:#555;">' +
+      'Walk ~' + walkMins + ' min &nbsp;·&nbsp; Run ~' + runMins + ' min' +
+      '</div>';
+  } else {
+    box.innerHTML = '<strong>' + name + '</strong><div style="color:#555;font-size:13px;margin-top:4px;">Could not get location. Use Maps for directions.</div>';
+  }
+}
+
+function openMaps(){
+  const q = encodeURIComponent(winner + ' pizza New York City');
+  window.open('https://www.google.com/maps/search/' + q, '_blank');
+}
+
+shuffleDisplay();
+drawWheel(0);
+</script>
+</body>
+</html>
